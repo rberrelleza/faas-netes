@@ -1,5 +1,6 @@
 {{- $functionNs := default .Release.Namespace .Values.functionNamespace }}
 {{- if .Values.prometheus.create }}
+{{- if .Values.rbac }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -51,4 +52,5 @@ subjects:
 - kind: ServiceAccount
   name: {{ .Release.Name }}-prometheus
   namespace: {{ .Release.Namespace | quote }}
+{{- end }}
 {{- end }}
