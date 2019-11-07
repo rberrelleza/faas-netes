@@ -1,11 +1,8 @@
-functionNamespace: openfaas-fn  # Default namespace for functions
-
-async: true
-
+functionNamespace: openfaas-rberrelleza  # Default namespace for functions
 exposeServices: true
-serviceType: NodePort
+serviceType: ClusterIP
 httpProbe: true               # Setting to true will use HTTP for readiness and liveness probe on the OpenFaaS system Pods (incompatible with Istio < 1.1.5)
-rbac: true
+rbac: false
 clusterRole: false            # Set to true to have OpenFaaS administrate multiple namespaces
 
 # create pod security policies for OpenFaaS control plane
@@ -15,15 +12,11 @@ securityContext: true
 basic_auth: true
 
 basicAuthSecret:
-  generate: false
-  user: "admin"
-  token: ""
+  generate: true
+  token: "Password@123"
 
 # image pull policy for openfaas components, can change to `IfNotPresent` in offline env
 openfaasImagePullPolicy: "Always"
-
-gatewayExternal:
-  annotations: {}
 
 gateway:
   image: openfaas/gateway:0.18.2
@@ -32,8 +25,6 @@ gateway:
   upstreamTimeout : "60s"  # Must be smaller than read/write_timeout
   replicas: 1
   scaleFromZero: true
-  # change the port when creating multiple releases in the same baremetal cluster
-  nodePort: 31112
   maxIdleConns: 1024
   maxIdleConnsPerHost: 1024
   directFunctions: true
@@ -48,7 +39,7 @@ faasnetes:
   writeTimeout : "60s"
   imagePullPolicy : "Always"    # Image pull policy for deployed functions
   httpProbe: true               # Setting to true will use HTTP for readiness and liveness probe on Pods (incompatible with Istio < 1.1.5)
-  setNonRootUser: false
+  setNonRootUser: true
   readinessProbe:
     initialDelaySeconds: 2
     timeoutSeconds: 1           # Tuned-in to run checks early and quickly to support fast cold-start from zero replicas
@@ -57,18 +48,6 @@ faasnetes:
     initialDelaySeconds: 2
     timeoutSeconds: 1
     periodSeconds: 2           # Reduce to 1 for a faster cold-start, increase higher for lower-CPU usage
-  resources:
-    requests:
-      memory: "120Mi"
-      cpu: "50m"
-
-# replaces faas-netes with openfaas-operator
-operator:
-  image: openfaas/openfaas-operator:0.9.9
-  create: false
-  # set this to false when creating multiple releases in the same cluster
-  # must be true for the first one only
-  createCRD: true
   resources:
     requests:
       memory: "120Mi"
@@ -88,17 +67,19 @@ queueWorker:
 # both components
 prometheus:
   image: prom/prometheus:v2.11.0
-  create: true
+  create: false
   resources:
     requests:
       memory: "512Mi"
+      cpu: "200m"
 
 alertmanager:
   image: prom/alertmanager:v0.18.0
-  create: true
+  create: false
   resources:
     requests:
       memory: "25Mi"
+      cpu: "200m"
     limits:
       memory: "50Mi"
 
@@ -112,7 +93,7 @@ nats:
 
 # ingress configuration
 ingress:
-  enabled: false
+  enabled: true
   # Used to create Ingress record (should be used with exposeServices: false).
   hosts:
     - host: gateway.openfaas.local  # Replace with gateway.example.com if public-facing
@@ -120,19 +101,7 @@ ingress:
       servicePort: 8080
       path: /
   annotations:
-    kubernetes.io/ingress.class: nginx
-  tls:
-    # Secrets must be manually created in the namespace.
-
-# ingressOperator (optional) – component to have specific FQDN and TLS for Functions
-# https://github.com/openfaas-incubator/ingress-operator
-ingressOperator:
-  image: openfaas/ingress-operator:0.4.0
-  replicas: 1
-  create: false
-  resources:
-    requests:
-      memory: "25Mi"
+    dev.okteto.com/generate-host: true
 
 # faas-idler configuration
 faasIdler:
@@ -153,14 +122,3 @@ basicAuthPlugin:
     requests:
       memory: "50Mi"
       cpu: "20m"
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-kubernetesDNSDomain: cluster.local
-
-istio:
-  mtls: false
