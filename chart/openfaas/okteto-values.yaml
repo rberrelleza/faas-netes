@@ -29,7 +29,7 @@ gateway:
   maxIdleConnsPerHost: 1024
   directFunctions: true
   resources:
-    requests:
+    limits:
       memory: "120Mi"
       cpu: "50m"
 
@@ -49,7 +49,7 @@ faasnetes:
     timeoutSeconds: 1
     periodSeconds: 2           # Reduce to 1 for a faster cold-start, increase higher for lower-CPU usage
   resources:
-    requests:
+    limits:
       memory: "120Mi"
       cpu: "50m"
 
@@ -59,7 +59,7 @@ queueWorker:
   replicas: 1
   gatewayInvoke: true
   resources:
-    requests:
+    limits:
       memory: "120Mi"
       cpu: "50m"
 
@@ -69,7 +69,7 @@ prometheus:
   image: prom/prometheus:v2.11.0
   create: false
   resources:
-    requests:
+    limits:
       memory: "512Mi"
       cpu: "200m"
 
@@ -77,9 +77,6 @@ alertmanager:
   image: prom/alertmanager:v0.18.0
   create: false
   resources:
-    requests:
-      memory: "25Mi"
-      cpu: "200m"
     limits:
       memory: "50Mi"
 
@@ -88,7 +85,7 @@ nats:
   image: nats-streaming:0.11.2
   enableMonitoring: false
   resources:
-    requests:
+    limits:
       memory: "120Mi"
 
 # ingress configuration
@@ -112,13 +109,13 @@ faasIdler:
   reconcileInterval: 1m                 # The interval between each attempt to scale functions to zero
   dryRun: true                          # Set to false to enable the idler to apply changes and scale to zero
   resources:
-    requests:
+    limits:
       memory: "64Mi"
 
 basicAuthPlugin:
   image: openfaas/basic-auth-plugin:0.17.0
   replicas: 1
   resources:
-    requests:
+    limits:
       memory: "50Mi"
       cpu: "20m"
