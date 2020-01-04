@@ -25,7 +25,7 @@ spec:
     spec:
       {{- if .Values.operator.create }}
       serviceAccountName: {{ .Release.Name }}-operator
-      {{- else }}
+     {{- else if .Values.rbac }}
       serviceAccountName: {{ .Release.Name }}-controller
       {{- end }}
       volumes:

@@ -1,5 +1,6 @@
 {{- $functionNs := default .Release.Namespace .Values.functionNamespace }}
 {{- if eq .Values.operator.create false }}
+{{- if .Values.rbac }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -12,7 +13,6 @@ metadata:
     release: {{ .Release.Name }}
   name: {{ .Release.Name }}-controller
   namespace: {{ .Release.Namespace | quote }}
-{{- if .Values.rbac }}
 {{- if .Values.clusterRole }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1

@@ -1,5 +1,6 @@
 {{- $functionNs := default .Release.Namespace .Values.functionNamespace }}
 {{- if .Values.operator.create }}
+{{- if .Values.rbac }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -12,7 +13,6 @@ metadata:
     component: openfaas-operator
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
-{{- if .Values.rbac }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

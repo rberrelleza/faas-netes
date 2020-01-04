@@ -1,4 +1,5 @@
 {{- if .Values.ingressOperator.create }}
+{{- if .Values.rbac }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -12,7 +13,6 @@ metadata:
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 
-{{- if .Values.rbac }}    
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

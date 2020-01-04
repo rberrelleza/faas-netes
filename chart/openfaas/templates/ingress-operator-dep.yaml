@@ -23,7 +23,9 @@ spec:
       labels:
         app: ingress-operator
     spec:
+      {{- if .Values.rbac }}
       serviceAccountName: ingress-operator
+      {{- end }}
       containers:
       - name: operator
         resources:
