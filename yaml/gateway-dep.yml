@@ -34,7 +34,7 @@ spec:
               cpu: 50m
               memory: 120Mi
             
-        image: openfaas/gateway:0.18.2
+        image: openfaas/gateway:0.18.7
         imagePullPolicy: Always
         securityContext:
           readOnlyRootFilesystem: true
@@ -68,6 +68,8 @@ spec:
           value: "nats.openfaas.svc.cluster.local"
         - name: faas_nats_port
           value: "4222"
+        - name: faas_nats_channel
+          value: "faas-request"
         - name: basic_auth
           value: "true"
         - name: secret_mount_path
@@ -96,7 +98,7 @@ spec:
               cpu: 50m
               memory: 120Mi
             
-        image: openfaas/faas-netes:0.9.9
+        image: openfaas/faas-netes:0.9.15
         imagePullPolicy: 
         securityContext:
           readOnlyRootFilesystem: true
@@ -134,3 +136,6 @@ spec:
         ports:
         - containerPort: 8081
           protocol: TCP
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+        

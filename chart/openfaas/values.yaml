@@ -13,6 +13,7 @@ clusterRole: false            # Set to true to have OpenFaaS administrate multip
 psp: false
 securityContext: true
 basic_auth: true
+generateBasicAuth: false
 
 # image pull policy for openfaas components, can change to `IfNotPresent` in offline env
 openfaasImagePullPolicy: "Always"
@@ -21,7 +22,7 @@ gatewayExternal:
   annotations: {}
 
 gateway:
-  image: openfaas/gateway:0.18.2
+  image: openfaas/gateway:0.18.7
   readTimeout : "65s"
   writeTimeout : "65s"
   upstreamTimeout : "60s"  # Must be smaller than read/write_timeout
@@ -38,7 +39,7 @@ gateway:
       cpu: "50m"
 
 faasnetes:
-  image: openfaas/faas-netes:0.9.9
+  image: openfaas/faas-netes:0.9.15
   readTimeout : "60s"
   writeTimeout : "60s"
   imagePullPolicy : "Always"    # Image pull policy for deployed functions
@@ -59,7 +60,7 @@ faasnetes:
 
 # replaces faas-netes with openfaas-operator
 operator:
-  image: openfaas/openfaas-operator:0.9.9
+  image: openfaas/openfaas-operator:0.12.0
   create: false
   # set this to false when creating multiple releases in the same cluster
   # must be true for the first one only
@@ -70,7 +71,9 @@ operator:
       cpu: "50m"
 
 queueWorker:
-  image: openfaas/queue-worker:0.8.0
+  durableQueueSubscription: false
+  queueGroup: "faas"
+  image: openfaas/queue-worker:0.9.0
   ackWait : "60s"
   replicas: 1
   gatewayInvoke: true
@@ -99,6 +102,12 @@ alertmanager:
 
 # async provider
 nats:
+  channel: "faas-request"
+  external:
+    clusterName: ""
+    enabled: false
+    host: ""
+    port: ""
   image: nats-streaming:0.11.2
   enableMonitoring: false
   resources:
@@ -149,7 +158,8 @@ basicAuthPlugin:
       memory: "50Mi"
       cpu: "20m"
 
-nodeSelector: {}
+nodeSelector:
+  beta.kubernetes.io/arch: amd64
 
 tolerations: []
 

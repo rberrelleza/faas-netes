@@ -94,9 +94,7 @@ func main() {
 	go kubeInformerFactory.Start(stopCh)
 	lister := endpointsInformer.Lister()
 
-	functionLookup := handlers.NewFunctionLookup(functionNamespace, lister)
-
-	cfg.FaaSConfig.EnableHealth = true // Needed due to breaking change in #534
+	functionLookup := k8s.NewFunctionLookup(functionNamespace, lister)
 
 	bootstrapHandlers := bootTypes.FaaSHandlers{
 		FunctionProxy:        proxy.NewHandlerFunc(cfg.FaaSConfig, functionLookup),
@@ -109,7 +107,7 @@ func main() {
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(version.BuildVersion(), version.GitCommit),
 		SecretHandler:        handlers.MakeSecretHandler(functionNamespace, clientset),
-		LogHandler:           logs.NewLogHandlerFunc(handlers.NewLogRequestor(clientset, functionNamespace), cfg.FaaSConfig.WriteTimeout),
+		LogHandler:           logs.NewLogHandlerFunc(k8s.NewLogRequestor(clientset, functionNamespace), cfg.FaaSConfig.WriteTimeout),
 		ListNamespaceHandler: handlers.MakeNamespacesLister(functionNamespace, clientset),
 	}
 

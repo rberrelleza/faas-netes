@@ -29,8 +29,13 @@ const initialReplicasCount = 1
 
 // MakeDeployHandler creates a handler to create new functions in the cluster
 func MakeDeployHandler(functionNamespace string, factory k8s.FunctionFactory) http.HandlerFunc {
+	secrets := k8s.NewSecretsClient(factory.Client)
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+
+		if r.Body != nil {
+			defer r.Body.Close()
+		}
 
 		body, _ := ioutil.ReadAll(r.Body)
 
@@ -53,7 +58,7 @@ func MakeDeployHandler(functionNamespace string, factory k8s.FunctionFactory) ht
 			namespace = request.Namespace
 		}
 
-		existingSecrets, err := getSecrets(factory.Client, namespace, request.Secrets)
+		existingSecrets, err := secrets.GetSecrets(namespace, request.Secrets)
 		if err != nil {
 			wrappedErr := fmt.Errorf("unable to fetch secrets: %s", err.Error())
 			http.Error(w, wrappedErr.Error(), http.StatusBadRequest)
@@ -215,7 +220,7 @@ func makeDeploymentSpec(request types.FunctionDeployment, existingSecrets map[st
 	factory.ConfigureReadOnlyRootFilesystem(request, deploymentSpec)
 	factory.ConfigureContainerUserID(deploymentSpec)
 
-	if err := UpdateSecrets(request, deploymentSpec, existingSecrets); err != nil {
+	if err := factory.ConfigureSecrets(request, deploymentSpec, existingSecrets); err != nil {
 		return nil, err
 	}
 
@@ -272,7 +277,7 @@ func buildEnvVars(request *types.FunctionDeployment) []corev1.EnvVar {
 
 	if len(request.EnvProcess) > 0 {
 		envVars = append(envVars, corev1.EnvVar{
-			Name:  "fprocess",
+			Name:  k8s.EnvProcessName,
 			Value: request.EnvProcess,
 		})
 	}

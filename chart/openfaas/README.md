@@ -42,17 +42,6 @@ Add the OpenFaaS `helm` chart:
 helm repo add openfaas https://openfaas.github.io/faas-netes/
 ```
 
-Generate secrets so that we can enable basic authentication for the gateway:
-
-```sh
-# generate a random password
-PASSWORD=$(head -c 12 /dev/urandom | shasum| cut -d' ' -f1)
-
-kubectl -n openfaas create secret generic basic-auth \
---from-literal=basic-auth-user=admin \
---from-literal=basic-auth-password="$PASSWORD"
-```
-
 Now decide how you want to expose the services and edit the `helm upgrade` command as required.
 
 * To use NodePorts (default) pass no additional flags
@@ -67,11 +56,31 @@ Now deploy OpenFaaS from the helm chart repo:
 helm repo update \
  && helm upgrade openfaas --install openfaas/openfaas \
     --namespace openfaas  \
-    --set basic_auth=true \
-    --set functionNamespace=openfaas-fn
+    --set functionNamespace=openfaas-fn \
+    --set generateBasicAuth=true 
 ```
 
 > The above command will also update your helm repo to pull in any new releases.
+
+Retrieve the OpenFaaS credentials with:
+
+```sh
+PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode) && \
+echo "OpenFaaS admin password: $PASSWORD"
+```
+#### Generate basic-auth credentials
+
+The chart has a pre-install hook which can generate basic-auth credentials, enable it with `--set generateBasicAuth=true`.
+
+Alternatively, you can set `generateBasicAuth` to `false` and generate or supply the basic-auth credentials yourself. This is the option you may want if you are using `helm template`.
+
+```sh	
+# generate a random password	
+PASSWORD=$(head -c 12 /dev/urandom | shasum| cut -d' ' -f1)	
+kubectl -n openfaas create secret generic basic-auth \	
+--from-literal=basic-auth-user=admin \	
+--from-literal=basic-auth-password="$PASSWORD"	
+```	
 
 #### Tuning cold-start
 
@@ -284,10 +293,11 @@ Additional OpenFaaS options in `values.yaml`.
 | ----------------------- | ----------------------------------    | ---------------------------------------------------------- |
 | `functionNamespace` | Functions namespace, preferred `openfaas-fn` | `default` |
 | `clusterRole` | Set to `true` if you'd like to use multiple namespaces for functions | `false` |
-| `async` | Deploys NATS | `true` |
+| `async` | Enables asynchronous function invocations. If `.nats.external.enabled` is `false`, also deploys NATS Streaming | `true` |
 | `exposeServices` | Expose `NodePorts/LoadBalancer`  | `true` |
 | `serviceType` | Type of external service to use `NodePort/LoadBalancer` | `NodePort` |
 | `basic_auth` | Enable basic authentication on the Gateway | `true` |
+| `generateBasicAuth` | Generate admin password for basic authentication | `false` |
 | `rbac` | Enable RBAC | `true` |
 | `httpProbe` | Setting to true will use HTTP for readiness and liveness probe on the OpenFaaS system Pods (compatible with Istio >= 1.1.5) | `true` |
 | `psp` | Enable [Pod Security Policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) for OpenFaaS accounts | `false` |
@@ -314,9 +324,16 @@ Additional OpenFaaS options in `values.yaml`.
 | `gateway.scaleFromZero` | Enables an intercepting proxy which will scale any function from 0 replicas to the desired amount | `true` |
 | `gateway.maxIdleConns` | Set max idle connections from gateway to functions | `1024` |
 | `gateway.maxIdleConnsPerHost` | Set max idle connections from gateway to functions per host | `1024` |
+| `queueWorker.durableQueueSubscriptions` | Whether to use a durable queue subscription | `false` |
+| `queueWorker.queueGroup` | The name of the queue group used to process asynchronous function invocations | `faas` |
 | `queueWorker.replicas` | Replicas of the queue-worker, pick more than `1` for HA | `1` |
 | `queueWorker.ackWait` | Max duration of any async task/request | `60s` |
-| `nats.enableMonitoring` | Enable the NATS monitoring endpoints on port `8222` | `false` |
+| `nats.channel` | The name of the NATS Streaming channel to use for asynchronous function invocations | `faas-request` |
+| `nats.external.clusterName` | The name of the externally-managed NATS Streaming server | `` |
+| `nats.external.enabled` | Whether to use an externally-managed NATS Streaming server | `false` |
+| `nats.external.host` | The host at which the externally-managed NATS Streaming server can be reached | `""` |
+| `nats.external.port` | The port at which the externally-managed NATS Streaming server can be reached | `""` |
+| `nats.enableMonitoring` | Enable the NATS monitoring endpoints on port `8222` for NATS Streaming deployments managed by this chart | `false` |
 | `faasIdler.create` | Create the faasIdler component | `true` |
 | `faasIdler.inactivityDuration` | Duration after which faas-idler will scale function down to 0 | `15m` |
 | `faasIdler.reconcileInterval` | The time between each of reconciliation | `1m` |

@@ -10,15 +10,17 @@ import (
 	"net/http"
 
 	types "github.com/openfaas/faas-provider/types"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openfaas/faas-netes/k8s"
 )
 
 // MakeFunctionReader handler for reading functions deployed in the cluster as deployments.
 func MakeFunctionReader(defaultNamespace string, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		q := r.URL.Query()
 		namespace := q.Get("namespace")
 
@@ -30,6 +32,7 @@ func MakeFunctionReader(defaultNamespace string, clientset *kubernetes.Clientset
 
 		if lookupNamespace == "kube-system" {
 			http.Error(w, "unable to list within the kube-system namespace", http.StatusUnauthorized)
+			return
 		}
 
 		functions, err := getServiceList(lookupNamespace, clientset)
@@ -61,7 +64,7 @@ func getServiceList(functionNamespace string, clientset *kubernetes.Clientset) (
 	}
 
 	for _, item := range res.Items {
-		function := readFunction(item)
+		function := k8s.AsFunctionStatus(item)
 		if function != nil {
 			functions = append(functions, *function)
 		}
@@ -85,32 +88,11 @@ func getService(functionNamespace string, functionName string, clientset *kubern
 	}
 
 	if item != nil {
-		function := readFunction(*item)
+		function := k8s.AsFunctionStatus(*item)
 		if function != nil {
 			return function, nil
 		}
 	}
 
 	return nil, fmt.Errorf("function: %s not found", functionName)
-}
-
-func readFunction(item appsv1.Deployment) *types.FunctionStatus {
-	var replicas uint64
-	if item.Spec.Replicas != nil {
-		replicas = uint64(*item.Spec.Replicas)
-	}
-
-	labels := item.Spec.Template.Labels
-	function := types.FunctionStatus{
-		Name:              item.Name,
-		Replicas:          replicas,
-		Image:             item.Spec.Template.Spec.Containers[0].Image,
-		AvailableReplicas: uint64(item.Status.AvailableReplicas),
-		InvocationCount:   0,
-		Labels:            &labels,
-		Annotations:       &item.Spec.Template.Annotations,
-		Namespace:         item.Namespace,
-	}
-
-	return &function
 }
